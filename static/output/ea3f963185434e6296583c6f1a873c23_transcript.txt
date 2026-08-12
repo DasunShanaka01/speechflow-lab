@@ -1,0 +1,5 @@
+--- t1.mp3 ---
+[0:00.0 to 0:02.0] Hello from FirstFile
+
+--- t2.mp3 ---
+[0:02.0 to 0:09.0] Second file starts later.

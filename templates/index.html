@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Text to Audio + Transcript</title>
+    <style>
+      :root {
+        --bg: #0f172a;
+        --panel: #111827;
+        --panel-2: #1f2937;
+        --text: #e5e7eb;
+        --muted: #9ca3af;
+        --accent: #38bdf8;
+        --accent-2: #22c55e;
+        --border: #334155;
+      }
+
+      * { box-sizing: border-box; }
+
+      body {
+        margin: 0;
+        font-family: Arial, sans-serif;
+        background: linear-gradient(135deg, #020817, #0f172a 45%, #111827);
+        color: var(--text);
+      }
+
+      .container {
+        max-width: 980px;
+        margin: 40px auto;
+        padding: 20px;
+      }
+
+      h1 {
+        text-align: center;
+        margin-bottom: 24px;
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+      }
+
+      .panel {
+        background: rgba(17, 24, 39, 0.9);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 20px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+      }
+
+      textarea, input[type="file"], select, button {
+        width: 100%;
+        margin-top: 10px;
+        padding: 12px 14px;
+        border-radius: 10px;
+        border: 1px solid var(--border);
+        background: var(--panel-2);
+        color: var(--text);
+        font-size: 15px;
+      }
+
+      textarea {
+        min-height: 200px;
+        resize: vertical;
+      }
+
+      button {
+        background: var(--accent);
+        border: none;
+        cursor: pointer;
+        font-weight: bold;
+        color: #082f49;
+        transition: transform 0.15s ease;
+      }
+
+      button:hover {
+        transform: translateY(-1px);
+      }
+
+      .secondary {
+        background: var(--accent-2);
+        color: #052e16;
+      }
+
+      .result-box {
+        margin-top: 16px;
+        padding: 16px;
+        border-radius: 12px;
+        background: rgba(15, 23, 42, 0.9);
+        border: 1px solid var(--border);
+      }
+
+      audio {
+        width: 100%;
+        margin-top: 12px;
+      }
+
+      pre {
+        white-space: pre-wrap;
+        word-wrap: break-word;
+        font-family: Consolas, monospace;
+        font-size: 14px;
+        color: var(--text);
+        margin: 0;
+      }
+
+      .message {
+        margin-top: 10px;
+        color: var(--muted);
+      }
+
+      @media (max-width: 760px) {
+        .grid {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>Text to Audio + Audio Transcript</h1>
+
+      <div class="grid">
+        <section class="panel">
+          <h2>Text to Audio</h2>
+          <label for="text">Text</label>
+          <textarea id="text" placeholder="Type or paste your story here...">Picture a caveman. Right now. Go ahead.</textarea>
+
+          <label for="lang">Language</label>
+          <select id="lang">
+            <option value="en">English</option>
+            <option value="es">Spanish</option>
+            <option value="fr">French</option>
+            <option value="de">German</option>
+          </select>
+
+          <button id="generateAudioBtn">Generate Audio</button>
+          <div id="audioResult" class="result-box" style="display:none;">
+            <h3>Audio Output</h3>
+            <audio id="audioPlayer" controls></audio>
+            <a id="audioDownload" href="#" download>Download MP3</a>
+          </div>
+          <div id="audioMessage" class="message"></div>
+        </section>
+
+        <section class="panel">
+          <h2>Audio to Transcript</h2>
+          <label for="audioFile">Upload MP3/WAV files (in order)</label>
+          <input id="audioFile" type="file" accept="audio/*" multiple />
+          <div id="fileCount" class="message"></div>
+          <button id="transcribeBtn" class="secondary">Transcribe</button>
+
+          <div id="transcriptResult" class="result-box" style="display:none;">
+            <h3>Transcript</h3>
+            <pre id="transcriptText"></pre>
+            <a id="transcriptDownload" href="#" download>Download TXT</a>
+          </div>
+          <div id="transcriptMessage" class="message"></div>
+        </section>
+      </div>
+    </div>
+
+    <script>
+      async function postJson(url, formData) {
+        const response = await fetch(url, {
+          method: 'POST',
+          body: formData
+        });
+
+        const rawText = await response.text();
+        let result = null;
+
+        if (rawText) {
+          try {
+            result = JSON.parse(rawText);
+          } catch (error) {
+            throw new Error(`Server returned an invalid response (${response.status}). Check whether the app is running and the endpoint is reachable.`);
+          }
+        }
+
+        if (!response.ok) {
+          throw new Error((result && result.error) || `Request failed with status ${response.status}.`);
+        }
+
+        return result;
+      }
+
+      document.getElementById('generateAudioBtn').addEventListener('click', async () => {
+        const text = document.getElementById('text').value;
+        const lang = document.getElementById('lang').value;
+        const formData = new FormData();
+        formData.append('text', text);
+        formData.append('lang', lang);
+
+        document.getElementById('audioMessage').textContent = 'Generating audio...';
+
+        try {
+          const result = await postJson('/api/tts', formData);
+          const audio = document.getElementById('audioPlayer');
+          const audioBox = document.getElementById('audioResult');
+          const downloadLink = document.getElementById('audioDownload');
+
+          audio.src = result.audio_url;
+          downloadLink.href = result.audio_url;
+          audioBox.style.display = 'block';
+          document.getElementById('audioMessage').textContent = result.message;
+        } catch (error) {
+          document.getElementById('audioMessage').textContent = error.message;
+        }
+      });
+
+      document.getElementById('audioFile').addEventListener('change', () => {
+        const files = document.getElementById('audioFile').files;
+        const fileCount = document.getElementById('fileCount');
+        if (!files || files.length === 0) {
+          fileCount.textContent = '';
+          return;
+        }
+
+        fileCount.textContent = `${files.length} file(s) selected. File 2 timeline starts after file 1 duration, and so on.`;
+      });
+
+      document.getElementById('transcribeBtn').addEventListener('click', async () => {
+        const fileInput = document.getElementById('audioFile');
+        const files = fileInput.files;
+
+        if (!files || files.length === 0) {
+          document.getElementById('transcriptMessage').textContent = 'Please choose one or more audio files first.';
+          return;
+        }
+
+        const formData = new FormData();
+        Array.from(files).forEach((file) => {
+          formData.append('audio', file);
+        });
+
+        document.getElementById('transcriptMessage').textContent = `Transcribing ${files.length} file(s)...`;
+
+        try {
+          const result = await postJson('/api/transcribe', formData);
+          const transcriptBox = document.getElementById('transcriptResult');
+          const transcriptText = document.getElementById('transcriptText');
+          const downloadLink = document.getElementById('transcriptDownload');
+
+          transcriptText.textContent = result.transcript || 'No transcript found.';
+          downloadLink.href = result.download_url;
+          transcriptBox.style.display = 'block';
+          document.getElementById('transcriptMessage').textContent = 'Transcript ready.';
+        } catch (error) {
+          document.getElementById('transcriptMessage').textContent = error.message;
+        }
+      });
+    </script>
+  </body>
+</html>

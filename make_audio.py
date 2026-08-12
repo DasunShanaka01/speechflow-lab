@@ -1,0 +1,36 @@
+from gtts import gTTS
+
+# The text you want to change to audio
+my_text = """Picture a caveman. Right now. Go ahead.
+
+You probably imagined a guy in a loincloth chasing a mammoth with a spear, screaming, sprinting, sweating, one bad decision away from becoming lunch himself. That image is burned into your brain by every cartoon, every textbook illustration, every history teacher who needed a slide to fill five minutes. And it is almost completely wrong.
+
+Here's the real answer, and it's far stranger. For the vast majority of human history, hunting big animals was not the main event. It was closer to a side hustle. A risky, occasional, often unsuccessful side hustle. The actual full-time job of being a Stone Age human was something far less cinematic, and far more familiar than you'd expect.
+
+Let's decode that. Anthropologists studying modern hunter-gatherer societies, groups like the Hadza in Tanzania and the !Kung of the Kalahari, have spent decades tracking exactly how these communities spend their time, because they live in ways that echo how humans lived for roughly 300,000 years before agriculture showed up and ruined everyone's schedule. And the data is not what Hollywood promised you.
+
+Anthropologist Richard Borshay Lee did some of the earliest and most influential fieldwork on this in the 1960s, clocking exactly how many hours the !Kung spent getting food. His number: around 15 hours a week. Fifteen. That's less than a part-time job at a coffee shop. The rest of the time was spent on tool repair, storytelling, childcare, socializing, resting, and what researchers dryly categorize as "leisure." Yes. Cavemen had leisure time. More of it, in some estimates, than you do right now, reading this on your one sanctioned lunch break.
+
+So where did the myth of the exhausted, starving, mammoth-chasing caveman come from? Mostly from us projecting backwards. Early anthropologists assumed that without agriculture, life must have been a constant, desperate scramble for calories. Marshall Sahlins, an anthropologist working in the late 1960s, flipped that assumption on its head with an essay so influential it's still argued about today, memorably describing hunter-gatherers as living in "the original affluent society." Not affluent because they had a lot of stuff. Affluent because they wanted very little, and got it without much effort.
+
+And the food itself. Here's the part that really breaks the mental image. The bulk of daily calories in most hunter-gatherer societies didn't come from a heroic kill. They came from gathering. Roots, nuts, tubers, berries, insects, shellfish, and small, unglamorous animals that never made it into a single cave painting because nobody brags about the fifty snails they collected before lunch. In many groups, women did the majority of this gathering, and it was, calorically speaking, the actual backbone of survival. The big game hunt was real, but it was more like the lottery ticket of the ancient diet. Thrilling when it worked. Rare when it didn't. Which was often.
+
+Think about what that means for an actual Stone Age afternoon. You wake up. No alarm, obviously. You eat something left over. You spend a few hours walking a familiar route, digging up tubers you know are there because your grandmother showed you the spot decades ago, cracking open some shellfish, maybe chasing down a rabbit if you're feeling ambitious. By early afternoon, you're done. The rest of the day is yours. You fix a broken tool. You nap. You gossip. Anthropologist Polly Wiessner has documented that a huge chunk of Hadza and !Kung evening conversation, something like eighty percent of it, isn't about hunting logistics or food scarcity at all. It's storytelling. Social gossip. The Bronze Age equivalent of doom-scrolling, except with more moral instruction and fewer targeted ads.
+
+Here's the counterintuitive twist, though, the one that should really mess with your afternoon. Skeletal evidence from hunter-gatherer populations shows they were, on average, taller and had fewer signs of chronic disease and malnutrition than the farmers who came after them. That's right. Agriculture, the thing you were taught was humanity's great leap forward, actually made a lot of people shorter, sicker, and more overworked, at least in the early centuries. Jared Diamond famously called the adoption of agriculture "the worst mistake in the history of the human race," which is a slightly dramatic headline for an anthropology essay, but the underlying data holds up uncomfortably well. Farming meant monotonous diets, brutal repetitive labor, higher disease transmission from crowding, and, ironically, a much longer workweek than the "primitive" lifestyle it replaced.
+
+So why did humans switch to farming at all, if the hunter-gatherer schedule was objectively cushier? Mostly because agriculture could support far more people per square mile, even if each individual person was working harder and eating worse. Evolution and history don't optimize for your personal happiness. They optimize for whoever leaves behind the most descendants, even if those descendants are shorter, sicklier, and stuck tilling a field from sunrise to dusk. Population wins. Wellbeing loses. Your ancestors didn't choose farming because it was better for them. They got outcompeted by neighbors who had more mouths to feed, and then, quietly, permanently, the choice got made for everyone.
+
+Now here's the modern mirror, and it's an uncomfortable one. You live in a society of almost unimaginable material abundance compared to any point in the Stone Age. And yet you probably work more hours in a week than a Hadza forager did in ten days. You've got refrigeration, antibiotics, and a device in your pocket that can summon food to your door in twenty minutes, and somehow you still feel like there's never enough time. Somewhere around ten thousand years ago, your species traded a fifteen-hour workweek and a diet of varied wild plants for a permanent labor shortage and a diet mostly consisting of three domesticated grasses. And you call that progress.
+
+There's a certain dark comedy in it. The caveman you pictured at the start, sprinting after a mammoth, terrified and exhausted, wasn't your actual ancestor's typical Tuesday. He was your ancestor's occasional weekend project. The typical Tuesday looked more like a leisurely foraging walk, a long nap, and several hours of world-class gossip. Somewhere in the shift from digging up tubers to digging through spreadsheets, humanity lost the plot on what a good workday actually looks like.
+
+So next time you picture a caveman, don't picture the guy running from a woolly mammoth. Picture the guy who finished his errands by ten a.m., took a nap, and spent the rest of his afternoon telling increasingly exaggerated stories to his friends. Evolution didn't design you for your calendar. It designed you for his. And somehow, he's the one who sounds like he's on vacation."""
+
+# Change the text to speech
+tts = gTTS(text=my_text, lang='en', slow=False)
+
+# Save the audio file to your computer
+tts.save(r"C:\Users\dasun\Downloads\story.mp3")
+
+print("Your MP3 file is ready!")
