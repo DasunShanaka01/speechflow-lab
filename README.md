@@ -1,12 +1,37 @@
-# Text to Audio + Transcript Web App
+# Speechflow Lab
 
-This project turns your Python scripts into a simple browser app.
+Convert long text into MP3 audio and generate timestamped transcripts from one or more audio files.
 
 ## Features
 
-- Convert text to MP3 audio
-- Upload audio and generate timestamps transcript
-- Browser-based interface with no terminal commands needed for normal use
+- Text to speech (MP3) using gTTS
+- Handles long paragraphs by splitting and merging audio parts
+- Audio transcription with Whisper
+- Multi-file transcription support
+- Continuous timeline across files (file 2 starts after file 1 ends, etc.)
+- Transcript format: `[MM:SS] Transcript line`
+
+## Project Structure
+
+- `app.py` - Flask backend (TTS + transcription APIs)
+- `templates/index.html` - Web UI
+- `make_audio.py` - Standalone text-to-audio script
+- `make_transcript.py` - Standalone transcription script
+- `static/output/` - Generated MP3 and transcript files
+- `uploads/` - Uploaded audio files for transcription
+
+## Requirements
+
+- Python 3.10+
+- FFmpeg available in PATH (or local `tools/ffmpeg`)
+- Virtual environment recommended
+
+## Installation
+
+```powershell
+cd "D:\Study Materials\YT\Text to audio"
+Activate.ps1
+pip install -r requirements.txt
 
 ## Run
 
