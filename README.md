@@ -1,4 +1,4 @@
-# VoiceForge Transcriber
+# Speechflow Lab
 
 Convert long text into MP3 audio and generate timestamped transcripts from one or more audio files.
 
