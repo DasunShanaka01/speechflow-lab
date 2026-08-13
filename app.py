@@ -27,6 +27,17 @@ UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
 model = whisper.load_model("base")
 
+VOICE_STYLES = {
+    "neutral": {"lang": "en", "tld": "com", "slow": False},
+    "us": {"lang": "en", "tld": "us", "slow": False},
+    "uk": {"lang": "en", "tld": "co.uk", "slow": False},
+    "au": {"lang": "en", "tld": "com.au", "slow": False},
+    "india": {"lang": "en", "tld": "co.in", "slow": False},
+    "female": {"lang": "en", "tld": "com.au", "slow": False},
+    "male": {"lang": "en", "tld": "co.in", "slow": False},
+    "story": {"lang": "en", "tld": "com", "slow": True},
+}
+
 
 def format_time_label(seconds: float) -> str:
     total_seconds = max(0, int(float(seconds)))
@@ -99,22 +110,56 @@ def split_text_for_tts(text: str, max_chars: int = 160):
     return [chunk.strip() for chunk in chunks if chunk.strip()]
 
 
-def save_tts_chunk(text: str, lang: str, output_path: Path, retries: int = 2):
+def save_tts_chunk(
+    text: str,
+    lang: str,
+    output_path: Path,
+    retries: int = 2,
+    tld: str = "com",
+    slow: bool = False,
+):
     last_error = None
     for _ in range(retries + 1):
         try:
-            gTTS(text=text, lang=lang, slow=False).save(str(output_path))
+            gTTS(text=text, lang=lang, tld=tld, slow=slow).save(str(output_path))
             return
         except Exception as error:  # gTTS raises gTTSError and request-related failures here
             last_error = error
     raise last_error
 
 
-def build_mp3_from_text(text: str, lang: str, output_path: Path):
+def run_ffmpeg_concat(concat_list_path: Path, output_path: Path):
+    subprocess.run(
+        [
+            "ffmpeg",
+            "-y",
+            "-f",
+            "concat",
+            "-safe",
+            "0",
+            "-i",
+            str(concat_list_path),
+            "-c",
+            "copy",
+            str(output_path),
+        ],
+        check=True,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+
+
+def build_mp3_from_text(
+    text: str,
+    lang: str,
+    output_path: Path,
+    tld: str = "com",
+    slow: bool = False,
+):
     chunks = split_text_for_tts(text)
 
     if len(chunks) == 1:
-        save_tts_chunk(chunks[0], lang, output_path)
+        save_tts_chunk(chunks[0], lang, output_path, tld=tld, slow=slow)
         return
 
     temp_dir = OUTPUT_DIR / f"tts_{uuid.uuid4().hex}"
@@ -124,7 +169,7 @@ def build_mp3_from_text(text: str, lang: str, output_path: Path):
         part_paths = []
         for index, chunk in enumerate(chunks):
             part_path = temp_dir / f"part_{index}.mp3"
-            save_tts_chunk(chunk, lang, part_path)
+            save_tts_chunk(chunk, lang, part_path, tld=tld, slow=slow)
             part_paths.append(part_path)
 
         concat_list = temp_dir / "concat.txt"
@@ -132,24 +177,79 @@ def build_mp3_from_text(text: str, lang: str, output_path: Path):
             for part_path in part_paths:
                 file.write(f"file '{part_path.as_posix()}'\n")
 
-        subprocess.run(
-            [
-                "ffmpeg",
-                "-y",
-                "-f",
-                "concat",
-                "-safe",
-                "0",
-                "-i",
-                str(concat_list),
-                "-c",
-                "copy",
-                str(output_path),
-            ],
-            check=True,
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-        )
+        run_ffmpeg_concat(concat_list, output_path)
+    finally:
+        if temp_dir.exists():
+            for file_path in sorted(temp_dir.iterdir(), reverse=True):
+                if file_path.is_file():
+                    file_path.unlink()
+            temp_dir.rmdir()
+
+
+def parse_speaker_styles(style_text: str):
+    style_map = {}
+    for line in (style_text or "").splitlines():
+        line = line.strip()
+        if not line or "=" not in line:
+            continue
+        speaker, style = line.split("=", 1)
+        speaker = speaker.strip()
+        style = style.strip().lower()
+        if speaker:
+            style_map[speaker] = style
+    return style_map
+
+
+def parse_speaker_script(script_text: str):
+    turns = []
+    for raw_line in (script_text or "").splitlines():
+        line = raw_line.strip()
+        if not line:
+            continue
+        if ":" in line:
+            speaker, text = line.split(":", 1)
+            speaker = speaker.strip()
+            text = text.strip()
+            if speaker and text:
+                turns.append((speaker, text))
+        else:
+            turns.append(("Narrator", line))
+    return turns
+
+
+def build_mp3_from_speaker_turns(turns, speaker_styles: dict, output_path: Path):
+    temp_dir = OUTPUT_DIR / f"speaker_tts_{uuid.uuid4().hex}"
+    temp_dir.mkdir(parents=True, exist_ok=True)
+
+    try:
+        part_paths = []
+        part_index = 0
+        for speaker, turn_text in turns:
+            style_name = speaker_styles.get(speaker, "neutral")
+            style = VOICE_STYLES.get(style_name, VOICE_STYLES["neutral"])
+            chunks = split_text_for_tts(turn_text)
+
+            for chunk in chunks:
+                part_path = temp_dir / f"part_{part_index}.mp3"
+                save_tts_chunk(
+                    chunk,
+                    style["lang"],
+                    part_path,
+                    tld=style["tld"],
+                    slow=style["slow"],
+                )
+                part_paths.append(part_path)
+                part_index += 1
+
+        if not part_paths:
+            raise ValueError("No speaker lines found to generate audio.")
+
+        concat_list = temp_dir / "concat.txt"
+        with concat_list.open("w", encoding="utf-8") as file:
+            for part_path in part_paths:
+                file.write(f"file '{part_path.as_posix()}'\n")
+
+        run_ffmpeg_concat(concat_list, output_path)
     finally:
         if temp_dir.exists():
             for file_path in sorted(temp_dir.iterdir(), reverse=True):
@@ -167,6 +267,7 @@ def index():
 def generate_audio():
     text = (request.form.get("text") or "").strip()
     lang = request.form.get("lang", "en")
+    voice_style = (request.form.get("voice_style") or "neutral").strip().lower()
 
     if not text:
         return jsonify({"error": "Please enter some text to convert to speech."}), 400
@@ -174,11 +275,44 @@ def generate_audio():
     file_name = f"{uuid.uuid4().hex}.mp3"
     output_path = OUTPUT_DIR / file_name
 
-    build_mp3_from_text(text, lang, output_path)
+    style = VOICE_STYLES.get(voice_style, VOICE_STYLES["neutral"])
+
+    build_mp3_from_text(
+        text,
+        lang,
+        output_path,
+        tld=style["tld"],
+        slow=style["slow"],
+    )
 
     return jsonify({
         "audio_url": f"/static/output/{file_name}",
         "message": "Audio created successfully."
+    })
+
+
+@app.route("/api/tts_speakers", methods=["POST"])
+def generate_speaker_audio():
+    script = (request.form.get("script") or "").strip()
+    style_text = request.form.get("styles") or ""
+
+    if not script:
+        return jsonify({"error": "Please provide speaker script text."}), 400
+
+    turns = parse_speaker_script(script)
+    if not turns:
+        return jsonify({"error": "No valid speaker lines found. Use 'Name: text' format."}), 400
+
+    speaker_styles = parse_speaker_styles(style_text)
+
+    file_name = f"{uuid.uuid4().hex}.mp3"
+    output_path = OUTPUT_DIR / file_name
+
+    build_mp3_from_speaker_turns(turns, speaker_styles, output_path)
+
+    return jsonify({
+        "audio_url": f"/static/output/{file_name}",
+        "message": "Multi-speaker audio created successfully.",
     })
 
 
